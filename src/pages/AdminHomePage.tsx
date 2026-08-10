@@ -6,7 +6,7 @@ import {
   Headphones,
   Plus,
 } from "lucide-react";
-import type { Category } from "@/types";
+import type { Category, Product } from "@/types";
 import CategoryCard from "@/components/CategoryCard";
 import AddCategoryModal from "@/components/AddCategoryModal";
 import { CategoryFormData } from "@/types";
@@ -14,11 +14,14 @@ import { useState } from "react";
 import { handleAddCategory } from "@/api/category/addCategory";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import ProductCard from "@/components/ProductCard";
 
 interface AdminHomePageProps {
   categories: Category[];
   loading: boolean;
   admin: boolean;
+  products: Product[];
   //onView: (product: Product) => void;
   //onShopAll: () => void;
 }
@@ -27,6 +30,7 @@ export default function AdminHomePage({
   categories,
   loading,
   admin,
+  products,
   //onView,
   //onShopAll,
 }: AdminHomePageProps) {
@@ -39,6 +43,7 @@ export default function AdminHomePage({
   const [categoryName, setCategoryName] = useState("");
   const [categoryDesc, setCategoryDesc] = useState("");
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   const handleCategorySubmit = async (data: CategoryFormData) => {
     // console.log(data);
@@ -187,13 +192,60 @@ export default function AdminHomePage({
             Add Category <Plus size={18} />
           </button>
         </div>
+        {showAddCategory && (
+          <AddCategoryModal
+            onClose={() => setShowAddCategory(false)}
+            onSubmit={handleCategorySubmit}
+          />
+        )}
       </section>
-      {showAddCategory && (
-        <AddCategoryModal
-          onClose={() => setShowAddCategory(false)}
-          onSubmit={handleCategorySubmit}
-        />
-      )}
+
+      <section className="border-t border-ink-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-10 flex items-end justify-between">
+            <div>
+              <span className="text-sm font-medium uppercase tracking-wide text-brand-600">
+                Inventory
+              </span>
+
+              <h2 className="mt-2 font-display text-3xl font-bold text-ink-900 sm:text-4xl">
+                Products
+              </h2>
+
+              <p className="mt-2 text-sm text-ink-500">
+                Manage the products available in your store.
+              </p>
+            </div>
+
+            <button
+              onClick={() => navigate("/admin/products")}
+              className="hidden items-center gap-1.5 text-sm font-medium text-ink-600 transition-colors hover:text-brand-600 sm:flex"
+            >
+              View All
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
+          {/* Product preview */}
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            {/* You can later replace these with actual products */}
+            {products.map((product) => (
+              <ProductCard key={product.productId} product={product} />
+            ))}
+          </div>
+
+          {/* Mobile View All */}
+          <div className="mt-8 text-center sm:hidden">
+            <button
+              onClick={() => navigate("admin/products")}
+              className="inline-flex items-center gap-2 rounded-full border border-ink-300 px-6 py-3 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-100"
+            >
+              View All Products
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

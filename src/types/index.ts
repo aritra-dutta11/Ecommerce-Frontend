@@ -1,15 +1,22 @@
 export interface Product {
-  id: string;
-  name: string;
-  description: string;
+  productId: string;
+  prodName: string;
+  prodDesc: string;
   price: number;
-  image_url: string;
+  quantity: number;
   category: string;
+  avgRating: number;
+  reviews: [ProductReview];
+  images: [String];
+  productBrand: string;
+  primary_image: string;
+}
+
+export interface ProductReview {
+  userName: string;
+  comment: string;
   rating: number;
-  reviews_count: number;
-  in_stock: boolean;
-  featured: boolean;
-  created_at: string;
+  reviewId: string;
 }
 
 export interface CartItem {
@@ -27,4 +34,14 @@ export interface CategoryFormData {
   categoryName: string;
   categoryDesc: string;
   image: File | null;
+}
+
+export interface ProductFormData {
+  productName: string;
+  productDesc: string;
+  price: string;
+  category: string;
+  brand: string;
+  quantity: string;
+  images: File[];
 }

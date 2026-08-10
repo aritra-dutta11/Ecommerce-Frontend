@@ -17,6 +17,8 @@ import { handleGetCategories } from "./api/category/getCategory";
 import { BrowserRouter } from "react-router-dom";
 import AdminAuthPage from "./pages/AdminAuthPage";
 import AdminHomePage from "./pages/AdminHomePage";
+import { handleGetProducts } from "./api/products/getProducts";
+import AdminProductsPage from "./pages/AdminProductsPage";
 
 type Page = "home" | "shop" | "product" | "checkout" | "auth";
 
@@ -42,9 +44,21 @@ export default function AppRoutes() {
     setLoading(false);
   }, []);
 
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    let getProdList = await handleGetProducts(1);
+    //console.log(getCategoriesRes);
+    if (getProdList?.serviceResult?.errorMsg === "") {
+      //console.log("Cat List - ", getCategoriesRes);
+      setProducts(getProdList?.prodList);
+    }
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+    fetchProducts();
+  }, [fetchCategories, fetchProducts]);
 
   //console.log("Categories - ", categories);
   const showHeader = page !== "auth";
@@ -63,6 +77,7 @@ export default function AppRoutes() {
             categories={categories}
             loading={loading}
             admin={admin}
+            products={products}
           />
         }
       />
@@ -70,6 +85,16 @@ export default function AppRoutes() {
       {/* <Route path="/checkout" element={<CheckoutPage />} /> */}
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/adminauth" element={<AdminAuthPage />} />
+      <Route
+        path="/admin/products"
+        element={
+          <AdminProductsPage
+            products={products}
+            categories={categories}
+            loading={loading}
+          />
+        }
+      />
     </Routes>
   );
 }
