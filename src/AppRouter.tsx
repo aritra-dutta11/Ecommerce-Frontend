@@ -67,7 +67,11 @@ export default function AppRoutes() {
       <Route
         path="/"
         element={
-          <HomePage categories={categories} loading={loading} admin={admin} />
+          <HomePage
+            categories={categories}
+            loading={loading}
+            products={products}
+          />
         }
       />
       <Route
@@ -87,13 +91,7 @@ export default function AppRoutes() {
       <Route path="/adminauth" element={<AdminAuthPage />} />
       <Route
         path="/admin/products"
-        element={
-          <AdminProductsPage
-            products={products}
-            categories={categories}
-            loading={loading}
-          />
-        }
+        element={<AdminProductsPage categories={categories} />}
       />
     </Routes>
   );

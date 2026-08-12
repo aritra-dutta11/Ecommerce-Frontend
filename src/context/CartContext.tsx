@@ -1,12 +1,21 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import type { Product, CartItem } from '@/types';
-
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
+import type { Product, CartItem, AddToCart } from "@/types";
+import toast from "react-hot-toast";
+import { useAuth } from "./AuthContext";
+import { handleAddToCart } from "@/api/cart/addToCart";
 interface CartContextValue {
   items: CartItem[];
   isOpen: boolean;
   totalItems: number;
   subtotal: number;
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (data: AddToCart) => Promise<void>;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -16,7 +25,7 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
-const STORAGE_KEY = 'ecom-cart';
+const STORAGE_KEY = "ecom-cart";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
@@ -28,38 +37,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   });
   const [isOpen, setIsOpen] = useState(false);
+  const { token } = useAuth();
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addItem = useCallback((product: Product, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item,
-        );
+  const addItem = useCallback(async (data: AddToCart) => {
+    try {
+      //console.log(data);
+      let addToCartReq = { prodId: data.prodId };
+      let authToken = token !== null ? token : "";
+      let addToCartRes = await handleAddToCart(addToCartReq, authToken);
+      if (addToCartRes.serviceResult.errorMsg !== "") {
+        toast.error(addToCartRes.serviceResult.errorMsg);
+      } else {
+        toast.success("Item added to Cart!");
       }
-      return [...prev, { product, quantity }];
-    });
-    setIsOpen(true);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
   }, []);
 
   const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+    setItems((prev) =>
+      prev.filter((item) => item.product.productId !== productId),
+    );
   }, []);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
-      setItems((prev) => prev.filter((item) => item.product.id !== productId));
+      setItems((prev) =>
+        prev.filter((item) => item.product.productId !== productId),
+      );
       return;
     }
     setItems((prev) =>
       prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item,
+        item.product.productId === productId ? { ...item, quantity } : item,
       ),
     );
   }, []);
@@ -69,7 +84,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const closeCart = useCallback(() => setIsOpen(false), []);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  );
 
   return (
     <CartContext.Provider
@@ -93,6 +111,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) throw new Error('useCart must be used within CartProvider');
+  if (!context) throw new Error("useCart must be used within CartProvider");
   return context;
 }

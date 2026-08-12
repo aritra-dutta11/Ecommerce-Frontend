@@ -5,14 +5,17 @@ import {
   RotateCcw,
   Headphones,
 } from "lucide-react";
-import type { Category } from "@/types";
+import type { Category, Product } from "@/types";
 import CategoryCard from "@/components/CategoryCard";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import ProductCard from "@/components/ProductCard";
+import { useCart } from "@/context/CartContext";
 
 interface UserHomePageProps {
   categories: Category[];
   loading: boolean;
+  products: Product[];
   //onView: (product: Product) => void;
   //onShopAll: () => void;
 }
@@ -20,11 +23,13 @@ interface UserHomePageProps {
 export default function UserHomePage({
   categories,
   loading,
+  products,
   //onView,
   //onShopAll,
 }: UserHomePageProps) {
   const { admin, userId } = useAuth();
   const navigate = useNavigate();
+  const { addItem } = useCart();
 
   if (admin) {
     navigate(`/dashboard/${userId}`);
@@ -172,13 +177,14 @@ export default function UserHomePage({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-              {/* {bestsellers.map((product) => (
+              {products.map((product) => (
                 <ProductCard
-                  key={product.id}
+                  key={product.productId}
                   product={product}
+                  addToCart={addItem}
                   //onView={onView}
                 />
-              ))} */}
+              ))}
             </div>
           )}
           <div className="mt-10 text-center">

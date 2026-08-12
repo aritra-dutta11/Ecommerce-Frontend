@@ -1,49 +1,53 @@
 import axios from "axios";
 import { ServiceResult } from "../ServiceResult/ServiceResult";
-import { CategoryFormData } from "@/types";
+import { CategoryFormData, ProductFormData } from "@/types";
 
-class AddCategoryResponse {
-  categoryId: string = "";
-  categoryName: string = "";
+class AddProductResponse {
+  productName: string = "";
+  productId: string = "";
+  productDesc: string = "";
   serviceResult: ServiceResult = new ServiceResult();
 }
 
-export async function handleAddCategory(
-  categoryReq: CategoryFormData,
+export async function handleAddNewProduct(
+  productReq: ProductFormData,
   token: string,
 ) {
-  let response: AddCategoryResponse = new AddCategoryResponse();
+  let response: AddProductResponse = new AddProductResponse();
 
   try {
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     //console.log(apiUrl);
-    // let res = await axios.post(`${apiUrl}/category/getAll`, categoryReq);
+    //let res = await axios.post(`${apiUrl}/category/getAll`, categoryReq);
     const formData = new FormData();
     formData.append(
-      "categoryReq",
+      "productReq",
       new Blob(
         [
           JSON.stringify({
-            categoryName: categoryReq.categoryName,
-            categoryDescription: categoryReq.categoryDesc,
+            productName: productReq.productName,
+            productBrand: productReq.brand,
+            categoryId: productReq.category,
+            productDesc: productReq.productDesc,
+            price: productReq.price,
+            quantity: productReq.quantity,
           }),
         ],
         { type: "application/json" },
       ),
     );
 
-    if (categoryReq.image) {
-      formData.append("categoryImage", categoryReq.image);
+    for (let i = 0; i < productReq.images.length; i++) {
+      formData.append("productImages", productReq.images[i]);
     }
-    console.log(token);
-    console.log(formData);
-    let res = await axios.post(`${apiUrl}/category/create`, formData, {
+    //console.log(token);
+    //console.log(formData);
+    let res = await axios.post(`${apiUrl}/products/create`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(res.data);
-    response = res?.data;
+    console.log(res?.data);
   } catch (error) {
     if (axios.isAxiosError(error)) {
       response.serviceResult.errorMsg = "Axios error: " + error.message;

@@ -15,7 +15,7 @@ import { handleAddCategory } from "@/api/category/addCategory";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import ProductCard from "@/components/ProductCard";
+import ProductCard from "@/components/AdminProductCard";
 
 interface AdminHomePageProps {
   categories: Category[];

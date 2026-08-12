@@ -24,6 +24,10 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface AddToCart {
+  prodId: string;
+}
+
 export interface Category {
   categoryId: string;
   categoryName: string;

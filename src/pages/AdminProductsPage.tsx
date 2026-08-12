@@ -1,67 +1,122 @@
 import { ArrowLeft, ArrowRight, Plus, Upload, X, Package } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category, Product, ProductFormData } from "@/types";
-import ProductCard from "@/components/ProductCard";
+import ProductCard from "@/components/AdminProductCard";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
+import { handleAddNewProduct } from "@/api/products/addProduct";
+import { handleGetProducts } from "@/api/products/getProducts";
 
 interface AdminProductsPageProps {
-  products: Product[];
   categories: Category[];
-  loading: boolean;
 }
 
 export default function AdminProductsPage({
-  products,
   categories,
-  loading,
 }: AdminProductsPageProps) {
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   // Number of products currently displayed
   const [visibleCount, setVisibleCount] = useState(8);
 
   const visibleProducts = products.slice(0, visibleCount);
 
-  const handleSeeMore = () => {
-    setVisibleCount((prev) => prev + 8);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    try {
+      handleFetchProducts(page);
+    } catch (error) {
+      console.log(error);
+    }
+  }, [page]);
+
+  const handleFetchProducts = async (page: number) => {
+    setLoading(true);
+    console.log(page);
+    console.log(visibleCount);
+    let getProdList = await handleGetProducts(page);
+    //console.log(getCategoriesRes);
+    console.log(getProdList);
+    if (getProdList?.serviceResult?.errorMsg === "") {
+      //console.log("Cat List - ", getCategoriesRes);
+      setProducts([...products, ...(getProdList?.prodList ?? [])]);
+    }
+    setLoading(false);
   };
 
-  const handleAddProduct = (data: ProductFormData) => {
-    console.log("Product data:", data);
-    let validationMsg = "";
-    if (data.images.length > 6) {
-      validationMsg += "Total number of images cannot exceed 6.";
-    }
+  const handleSeeMore = () => {
+    setVisibleCount((prev) => prev + 8);
+    setPage(page + 1);
+  };
 
-    if (data.brand === "") {
-      validationMsg += "Please enter brand name.";
-    }
+  const handleAddProduct = async (data: ProductFormData): Promise<boolean> => {
+    try {
+      let validationMsg = "";
 
-    if (data.price === "") {
-      validationMsg += "Please enter brand name.";
-    }
+      if (data.images.length > 6) {
+        validationMsg += "Total number of images cannot exceed 6. ";
+      }
 
-    if (data.quantity === "") {
-      validationMsg += "Please enter brand name.";
-    }
+      if (data.brand === "") {
+        validationMsg += "Please enter brand name. ";
+      }
 
-    if (data.brand === "") {
-      validationMsg += "Please enter brand name.";
-    }
+      if (data.price === "") {
+        validationMsg += "Please enter price. ";
+      }
 
-    if (data.productDesc === "") {
-      validationMsg += "Please enter brand name.";
-    }
-    if (!(validationMsg === "")) {
-      toast.error(validationMsg);
-    }
+      if (data.quantity === "") {
+        validationMsg += "Please enter quantity. ";
+      }
 
-    //setShowAddProduct(false);
+      if (data.productDesc === "") {
+        validationMsg += "Please enter product description. ";
+      }
+
+      /*
+       * Important:
+       * Don't call the API if validation failed.
+       */
+      if (validationMsg !== "") {
+        toast.error(validationMsg);
+        return false;
+      }
+
+      const authToken = token === null ? "" : token;
+
+      const response = await handleAddNewProduct(data, authToken);
+
+      if (response?.serviceResult?.errorMsg === "") {
+        toast.success("Product Added Successfully!");
+
+        setShowAddProduct(false);
+
+        return true;
+      } else {
+        toast.error(
+          response?.serviceResult?.errorMsg || "Failed to add product",
+        );
+
+        return false;
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add product",
+      );
+
+      return false;
+    }
   };
 
   return (
     <div className="min-h-screen bg-ink-50">
-      {/* Header */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
       <section className="border-b border-ink-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
@@ -86,7 +141,9 @@ export default function AdminProductsPage({
         </div>
       </section>
 
-      {/* Product Section */}
+      {/* =====================================================
+          PRODUCT SECTION
+      ===================================================== */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mb-10 flex items-end justify-between">
           <div>
@@ -108,7 +165,9 @@ export default function AdminProductsPage({
           </div>
         </div>
 
-        {/* Loading */}
+        {/* =================================================
+            LOADING
+        ================================================= */}
         {loading ? (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -120,14 +179,18 @@ export default function AdminProductsPage({
 
                 <div className="space-y-3 p-4">
                   <div className="h-4 animate-pulse rounded bg-ink-200" />
+
                   <div className="h-4 w-2/3 animate-pulse rounded bg-ink-200" />
+
                   <div className="h-5 w-1/3 animate-pulse rounded bg-ink-200" />
                 </div>
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          /* Empty state */
+          /* =================================================
+             EMPTY STATE
+          ================================================= */
           <div className="rounded-2xl border border-dashed border-ink-300 bg-white px-6 py-16 text-center">
             <Package size={42} className="mx-auto mb-4 text-ink-400" />
 
@@ -149,15 +212,19 @@ export default function AdminProductsPage({
           </div>
         ) : (
           <>
-            {/* Products */}
+            {/* =================================================
+                PRODUCTS
+            ================================================= */}
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
               {visibleProducts.map((product) => (
                 <ProductCard key={product.productId} product={product} />
               ))}
             </div>
 
-            {/* See More */}
-            {visibleCount < products.length && (
+            {/* =================================================
+                SEE MORE
+            ================================================= */}
+            {visibleCount <= products.length && (
               <div className="mt-12 text-center">
                 <button
                   onClick={handleSeeMore}
@@ -169,7 +236,9 @@ export default function AdminProductsPage({
               </div>
             )}
 
-            {/* All products message */}
+            {/* =================================================
+                END OF PRODUCTS
+            ================================================= */}
             {visibleCount >= products.length && products.length > 8 && (
               <p className="mt-10 text-center text-sm text-ink-500">
                 You have reached the end of the product list.
@@ -179,7 +248,9 @@ export default function AdminProductsPage({
         )}
       </section>
 
-      {/* Add Product Modal */}
+      {/* =====================================================
+          ADD PRODUCT MODAL
+      ===================================================== */}
       {showAddProduct && (
         <AddProductModal
           categories={categories}
@@ -192,17 +263,22 @@ export default function AdminProductsPage({
 }
 
 /* =========================================================
-   PRODUCT CARD
-========================================================= */
-
-/* =========================================================
    ADD PRODUCT MODAL
 ========================================================= */
 
 interface AddProductModalProps {
   categories: Category[];
   onClose: () => void;
-  onSubmit: (data: ProductFormData) => void;
+
+  /*
+   * Changed from:
+   *
+   * onSubmit: (data: ProductFormData) => void;
+   *
+   * to Promise<boolean> so the modal knows whether
+   * the API call succeeded or failed.
+   */
+  onSubmit: (data: ProductFormData) => Promise<boolean>;
 }
 
 function AddProductModal({
@@ -218,6 +294,15 @@ function AddProductModal({
   const [quantity, setQuantity] = useState("");
   const [images, setImages] = useState<File[]>([]);
 
+  /*
+   * Submit loading state
+   */
+  const [submitting, setSubmitting] = useState(false);
+
+  /* =======================================================
+     IMAGE CHANGE
+  ======================================================= */
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files ?? []);
 
@@ -232,28 +317,63 @@ function AddProductModal({
     e.target.value = "";
   };
 
+  /* =======================================================
+     REMOVE IMAGE
+  ======================================================= */
+
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /* =======================================================
+     SUBMIT
+  ======================================================= */
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    onSubmit({
-      productName,
-      productDesc,
-      price,
-      category,
-      brand,
-      quantity,
-      images,
-    });
+    /*
+     * Prevent duplicate API calls
+     */
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const success = await onSubmit({
+        productName,
+        productDesc,
+        price,
+        category,
+        brand,
+        quantity,
+        images,
+      });
+
+      /*
+       * If API failed, keep modal open and
+       * stop the loader.
+       *
+       * If API succeeded, parent closes the modal.
+       */
+      if (!success) {
+        setSubmitting(false);
+      }
+    } catch (error) {
+      console.error("Error while adding product:", error);
+
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl">
-        {/* Modal Header */}
+        {/* =================================================
+            MODAL HEADER
+        ================================================= */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink-200 bg-white px-6 py-5">
           <div>
             <h2 className="font-display text-2xl font-bold text-ink-900">
@@ -268,16 +388,21 @@ function AddProductModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
+            disabled={submitting}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Close"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Form */}
+        {/* =================================================
+            FORM
+        ================================================= */}
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
-          {/* Images */}
+          {/* =================================================
+              IMAGES
+          ================================================= */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-sm font-semibold text-ink-700">
@@ -304,7 +429,8 @@ function AddProductModal({
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-red-500"
+                    disabled={submitting}
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label="Remove image"
                   >
                     <X size={16} />
@@ -319,7 +445,13 @@ function AddProductModal({
               ))}
 
               {images.length < 6 && (
-                <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-ink-300 transition-colors hover:border-brand-500 hover:bg-brand-50">
+                <label
+                  className={`flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed border-ink-300 transition-colors ${
+                    submitting
+                      ? "cursor-not-allowed opacity-50"
+                      : "cursor-pointer hover:border-brand-500 hover:bg-brand-50"
+                  }`}
+                >
                   <Upload size={28} className="mb-2 text-ink-400" />
 
                   <span className="text-sm font-semibold text-ink-700">
@@ -333,6 +465,7 @@ function AddProductModal({
                     multiple
                     accept="image/png,image/jpeg,image/webp"
                     className="hidden"
+                    disabled={submitting}
                     onChange={handleImageChange}
                   />
                 </label>
@@ -344,7 +477,9 @@ function AddProductModal({
             </p>
           </div>
 
-          {/* Product Name */}
+          {/* =================================================
+              PRODUCT NAME
+          ================================================= */}
           <div>
             <label
               htmlFor="productName"
@@ -360,12 +495,16 @@ function AddProductModal({
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Enter product name"
               required
-              className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              disabled={submitting}
+              className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
             />
           </div>
 
-          {/* Category + Brand */}
+          {/* =================================================
+              CATEGORY + BRAND
+          ================================================= */}
           <div className="grid gap-5 sm:grid-cols-2">
+            {/* Category */}
             <div>
               <label
                 htmlFor="category"
@@ -379,7 +518,8 @@ function AddProductModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
-                className="w-full rounded-xl border border-ink-300 bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                disabled={submitting}
+                className="w-full rounded-xl border border-ink-300 bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
               >
                 <option value="">Select category</option>
 
@@ -391,6 +531,7 @@ function AddProductModal({
               </select>
             </div>
 
+            {/* Brand */}
             <div>
               <label
                 htmlFor="brand"
@@ -405,13 +546,17 @@ function AddProductModal({
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
                 placeholder="Enter brand"
-                className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                disabled={submitting}
+                className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
               />
             </div>
           </div>
 
-          {/* Price + Stock */}
+          {/* =================================================
+              PRICE + STOCK
+          ================================================= */}
           <div className="grid gap-5 sm:grid-cols-2">
+            {/* Price */}
             <div>
               <label
                 htmlFor="price"
@@ -434,11 +579,13 @@ function AddProductModal({
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="0.00"
                   required
-                  className="w-full rounded-xl border border-ink-300 py-3 pl-8 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  disabled={submitting}
+                  className="w-full rounded-xl border border-ink-300 py-3 pl-8 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
                 />
               </div>
             </div>
 
+            {/* Quantity */}
             <div>
               <label
                 htmlFor="stock"
@@ -455,12 +602,15 @@ function AddProductModal({
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="Enter stock quantity"
                 required
-                className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                disabled={submitting}
+                className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
               />
             </div>
           </div>
 
-          {/* Description */}
+          {/* =================================================
+              DESCRIPTION
+          ================================================= */}
           <div>
             <label
               htmlFor="description"
@@ -476,26 +626,44 @@ function AddProductModal({
               placeholder="Enter product description"
               rows={5}
               required
-              className="w-full resize-none rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              disabled={submitting}
+              className="w-full resize-none rounded-xl border border-ink-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50"
             />
           </div>
 
-          {/* Buttons */}
+          {/* =================================================
+              BUTTONS
+          ================================================= */}
           <div className="flex justify-end gap-3 border-t border-ink-200 pt-5">
+            {/* Cancel */}
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-ink-300 px-6 py-3 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-100"
+              disabled={submitting}
+              className="rounded-full border border-ink-300 px-6 py-3 text-sm font-semibold text-ink-700 transition-colors hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
 
+            {/* Add Product */}
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-full bg-ink-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+              disabled={submitting}
+              className="inline-flex min-w-[145px] items-center justify-center gap-2 rounded-full bg-ink-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <Plus size={18} />
-              Add Product
+              {submitting ? (
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+
+                  <span>Adding...</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={18} />
+
+                  <span>Add Product</span>
+                </>
+              )}
             </button>
           </div>
         </form>

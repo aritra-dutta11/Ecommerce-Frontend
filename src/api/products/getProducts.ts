@@ -14,7 +14,7 @@ export async function handleGetProducts(pageNo: number) {
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     //console.log(apiUrl);
     let res = await axios.get(`${apiUrl}/products/getProducts/${pageNo}`);
-    //console.log(res.data);
+    console.log(res.data);
     if (res && res?.data) {
       response = res?.data;
     }

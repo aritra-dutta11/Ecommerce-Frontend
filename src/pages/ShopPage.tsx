@@ -1,7 +1,7 @@
 import { SlidersHorizontal, X } from "lucide-react";
 import { useState, useMemo } from "react";
 import type { Product } from "@/types";
-import ProductCard from "@/components/ProductCard";
+import ProductCard from "@/components/AdminProductCard";
 
 interface ShopPageProps {
   products: Product[];

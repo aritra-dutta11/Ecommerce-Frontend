@@ -1,80 +1,83 @@
-import { ShoppingBag, Package } from "lucide-react";
-import type { Product } from "@/types";
+import { ShoppingBag } from "lucide-react";
+import type { AddToCart, Product } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import StarRating from "./StarRating";
 
 interface ProductCardProps {
   product: Product;
-  //onView: (product: Product) => void;
+  addToCart: (data: AddToCart) => Promise<void>;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart();
+export default function ProductCard({ product, addToCart }: ProductCardProps) {
+  const handleAddToCart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addToCart({
+        prodId: product.productId,
+      });
+    } catch (error) {}
+  };
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-ink-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-ink-100">
-        {/*
-          Change this according to your Product interface.
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-ink-200 transition-all duration-300 hover:ring-ink-300 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)]">
+      <button
+        //onClick={() => onView(product)}
+        className="relative aspect-square overflow-hidden bg-ink-100"
+        aria-label={`View ${product.prodName}`}
+      >
+        <img
+          src={product.primary_image}
+          alt={product.prodName}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        />
 
-          Example:
-          product.productImage
-          product.productImageUrl
-          product.image
-        */}
-
-        {product.primary_image ? (
-          <img
-            src={product.primary_image}
-            alt={product.prodName}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Package size={40} className="text-ink-300" />
-          </div>
-        )}
-
-        {/* Stock */}
-        <div className="absolute left-3 top-3">
-          {product.quantity === 0 ? (
-            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm">
+        {!(product.quantity > 0) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+            <span className="rounded-full bg-ink-900 px-4 py-1.5 text-sm font-medium text-white">
               Out of Stock
             </span>
-          ) : product.quantity <= 5 ? (
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-600 shadow-sm">
-              Hurry! Only {product.quantity} left in stock
-            </span>
+          </div>
+        )}
+      </button>
+
+      <div className="flex flex-1 flex-col p-4">
+        <span className="text-xs font-medium uppercase tracking-wide text-brand-600">
+          {product.category}
+        </span>
+        <button
+          //onClick={() => onView(product)}
+          className="mt-1 text-left font-display text-lg font-medium leading-snug text-ink-900 transition-colors hover:text-brand-600"
+        >
+          {product.prodName}
+        </button>
+        <div className="mt-1.5">
+          {product.avgRating > 0 ? (
+            <>
+              <StarRating
+                rating={product.avgRating}
+                size={14}
+                showValue={false}
+              />
+            </>
           ) : (
-            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink-700 shadow-sm">
-              In Stock
-            </span>
+            <>
+              <h6 className="font-semibold text-ink-400">No ratings</h6>
+            </>
           )}
         </div>
-      </div>
-
-      {/* Details */}
-      <div className="p-4">
-        <h3 className="truncate font-display text-lg font-semibold text-ink-900">
-          {product.prodName}
-        </h3>
-
-        <div className="mt-2">
-          <span className="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-600">
-            {product.productBrand}
+        <div className="mt-auto flex items-center justify-between pt-4">
+          <span className="text-xl font-semibold text-ink-900">
+            {formatPrice(product.price)}
           </span>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-lg font-bold text-ink-900">
-            ₹{product.price}
-          </span>
-
-          <button className="rounded-full border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-700 transition-colors hover:border-brand-500 hover:text-brand-600">
-            Edit
+          <button
+            onClick={handleAddToCart}
+            disabled={!(product.quantity > 0)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-ink-900 text-white transition-all duration-200 hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-ink-900"
+            aria-label={`Add ${product.prodName} to cart`}
+          >
+            <ShoppingBag size={18} />
           </button>
         </div>
       </div>

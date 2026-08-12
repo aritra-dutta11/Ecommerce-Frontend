@@ -7,11 +7,12 @@ import {
 } from "lucide-react";
 import type { Category, Product } from "@/types";
 import UserHomePage from "./UserHomePage";
+import AdminHomePage from "./AdminHomePage";
 
 interface HomePageProps {
   categories: Category[];
   loading: boolean;
-  admin: boolean;
+  products: Product[];
   //onView: (product: Product) => void;
   //onShopAll: () => void;
 }
@@ -19,7 +20,7 @@ interface HomePageProps {
 export default function HomePage({
   categories,
   loading,
-  admin,
+  products,
   //onView,
   //onShopAll,
 }: HomePageProps) {
@@ -28,14 +29,15 @@ export default function HomePage({
   //   .sort((a, b) => b.reviews_count - a.reviews_count)
   //   .slice(0, 8);
   //console.log(categories);
+  // console.log("Admin - ", admin);
 
   return (
     <>
-      {admin == true ? (
-        <UserHomePage categories={categories} loading={loading} />
-      ) : (
-        <UserHomePage categories={categories} loading={loading} />
-      )}
+      <UserHomePage
+        categories={categories}
+        loading={loading}
+        products={products}
+      />
     </>
   );
 }
