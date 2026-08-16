@@ -7,7 +7,7 @@ export interface Product {
   category: string;
   avgRating: number;
   reviews: [ProductReview];
-  images: [String];
+  images: [string];
   productBrand: string;
   primary_image: string;
 }
@@ -17,6 +17,11 @@ export interface ProductReview {
   comment: string;
   rating: number;
   reviewId: string;
+  createdAt: string;
+}
+
+export interface CartProduct extends Product {
+  maxQuantity: number;
 }
 
 export interface CartItem {

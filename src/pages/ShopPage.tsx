@@ -35,8 +35,8 @@ export default function ShopPage({
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q),
+          p.prodName.toLowerCase().includes(q) ||
+          p.prodDesc.toLowerCase().includes(q),
       );
     }
     result = result.filter((p) => p.price <= maxPrice);
@@ -49,10 +49,10 @@ export default function ShopPage({
         result.sort((a, b) => b.price - a.price);
         break;
       case "rating":
-        result.sort((a, b) => b.rating - a.rating);
+        result.sort((a, b) => b.avgRating - a.avgRating);
         break;
       default:
-        result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      //result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     }
     return result;
   }, [products, selectedCategory, sort, maxPrice, searchQuery]);
@@ -174,7 +174,7 @@ export default function ShopPage({
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4">
               {filtered.map((product) => (
                 <ProductCard
-                  key={product.id}
+                  key={product.productId}
                   product={product}
                   //onView={onView}
                 />

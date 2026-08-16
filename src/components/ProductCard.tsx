@@ -3,13 +3,18 @@ import type { AddToCart, Product } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import StarRating from "./StarRating";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
   addToCart: (data: AddToCart) => Promise<void>;
 }
 
+console.log("Product");
+
 export default function ProductCard({ product, addToCart }: ProductCardProps) {
+  const navigate = useNavigate();
+
   const handleAddToCart = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -19,10 +24,14 @@ export default function ProductCard({ product, addToCart }: ProductCardProps) {
     } catch (error) {}
   };
 
+  const handleProductClick = () => {
+    navigate(`/product/${product.productId}`);
+  };
+
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-ink-200 transition-all duration-300 hover:ring-ink-300 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)]">
       <button
-        //onClick={() => onView(product)}
+        onClick={handleProductClick}
         className="relative aspect-square overflow-hidden bg-ink-100"
         aria-label={`View ${product.prodName}`}
       >
@@ -47,7 +56,7 @@ export default function ProductCard({ product, addToCart }: ProductCardProps) {
           {product.category}
         </span>
         <button
-          //onClick={() => onView(product)}
+          onClick={handleProductClick}
           className="mt-1 text-left font-display text-lg font-medium leading-snug text-ink-900 transition-colors hover:text-brand-600"
         >
           {product.prodName}

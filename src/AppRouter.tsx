@@ -19,6 +19,8 @@ import AdminAuthPage from "./pages/AdminAuthPage";
 import AdminHomePage from "./pages/AdminHomePage";
 import { handleGetProducts } from "./api/products/getProducts";
 import AdminProductsPage from "./pages/AdminProductsPage";
+import UserProductsPage from "./pages/UserProductsPage";
+import CartPage from "./pages/CartPage";
 
 type Page = "home" | "shop" | "product" | "checkout" | "auth";
 
@@ -93,6 +95,12 @@ export default function AppRoutes() {
         path="/admin/products"
         element={<AdminProductsPage categories={categories} />}
       />
+      <Route
+        path="/products/all/:userId"
+        element={<UserProductsPage categories={categories} />}
+      />
+      <Route path="/product/:productId" element={<ProductDetailPage />} />
+      <Route path="/cart/:userId" element={<CartPage />} />
     </Routes>
   );
 }

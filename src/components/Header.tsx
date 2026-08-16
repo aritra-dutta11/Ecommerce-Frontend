@@ -9,7 +9,7 @@ interface HeaderProps {}
 export default function Header({}: HeaderProps) {
   const { totalItems, openCart } = useCart();
 
-  const { token, username, logout } = useAuth();
+  const { token, username, logout, userId } = useAuth();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -117,7 +117,9 @@ export default function Header({}: HeaderProps) {
 
           {/* Cart */}
           <button
-            onClick={openCart}
+            onClick={() => {
+              navigate(`/cart/${userId}`);
+            }}
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
             aria-label="Open cart"
           >

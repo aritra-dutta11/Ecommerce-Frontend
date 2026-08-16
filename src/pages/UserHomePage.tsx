@@ -31,6 +31,10 @@ export default function UserHomePage({
   const navigate = useNavigate();
   const { addItem } = useCart();
 
+  const handleShopAllClick = () => {
+    navigate(`/products/all/${userId}`);
+  };
+
   if (admin) {
     navigate(`/dashboard/${userId}`);
   }
@@ -189,7 +193,7 @@ export default function UserHomePage({
           )}
           <div className="mt-10 text-center">
             <button
-              //onClick={onShopAll}
+              onClick={handleShopAllClick}
               className="inline-flex items-center gap-2 rounded-full bg-ink-900 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
             >
               Shop All Products <ArrowRight size={18} />
