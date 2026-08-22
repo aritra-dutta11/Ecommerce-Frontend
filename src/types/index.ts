@@ -6,8 +6,8 @@ export interface Product {
   quantity: number;
   category: string;
   avgRating: number;
-  reviews: [ProductReview];
-  images: [string];
+  reviews: ProductReview[];
+  images: string[];
   productBrand: string;
   primary_image: string;
 }
@@ -53,4 +53,31 @@ export interface ProductFormData {
   brand: string;
   quantity: string;
   images: File[];
+}
+
+export interface Address {
+  addressId: string;
+  houseNo: string;
+  streetName: string;
+  cityOrTown: string;
+  district: string;
+  country: string;
+  pincode: string;
+  phoneNo: string;
+  stateName: string;
+  addressLabel: string;
+  addressOwnerName: string;
+}
+
+export interface AddressForm {
+  houseNo: string;
+  streetName: string;
+  cityOrTown: string;
+  district: string;
+  country: string;
+  pincode: string;
+  phoneNo: string;
+  stateName: string;
+  addressLabel: string;
+  addressOwnerName: string;
 }

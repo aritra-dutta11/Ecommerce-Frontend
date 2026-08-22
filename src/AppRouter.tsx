@@ -101,6 +101,7 @@ export default function AppRoutes() {
       />
       <Route path="/product/:productId" element={<ProductDetailPage />} />
       <Route path="/cart/:userId" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
     </Routes>
   );
 }

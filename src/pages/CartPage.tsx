@@ -12,20 +12,24 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
-import { useEffect, useState } from "react";
-import { CartProduct } from "@/types";
+import { useEffect, useRef, useState } from "react";
+import { CartProduct, Product } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { handleGetCartResponse } from "@/api/cart/getCart";
+import toast from "react-hot-toast";
+import { handleUpdateCart } from "@/api/cart/updateCart";
+import { handleDeleteCart } from "@/api/cart/deleteCart";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { token } = useAuth();
-
-  const { updateQuantity, removeItem, clearCart } = useCart();
+  const { token, userId } = useAuth();
 
   const [totalItems, setTotalItems] = useState(0);
   const [cartProducts, setCartProducts] = useState<CartProduct[]>([]);
   const [cartId, setCartId] = useState("");
+  const quantityTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
 
   useEffect(() => {
     handleGetCartProducts();
@@ -54,52 +58,113 @@ export default function CartPage() {
     }
   };
 
-  const handleQuantityChange = (
-    productId: string,
-    quantity: number,
-    maxQuantity: number,
+  const handleProductQuantityUpdate = async (
+    product: CartProduct,
+    updatedQuantity: number,
   ) => {
-    if (quantity < 1) {
-      removeItem(productId);
-      setCartProducts((prev) =>
-        prev.filter((item) => item.productId !== productId),
+    try {
+      let updateCartReq = {
+        prodId: product.productId,
+        cartId: cartId,
+        quantity: updatedQuantity,
+      };
+      let authToken = token ?? "";
+      let updateCartResponse = await handleUpdateCart(updateCartReq, authToken);
+      if (!updateCartResponse.serviceResult.success) {
+        toast.error(updateCartResponse.serviceResult.errorMsg);
+        await handleGetCartProducts();
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+      await handleGetCartProducts();
+    }
+  };
+
+  const handleQuantityChange = (
+    updatedQuantity: number,
+    product: CartProduct,
+  ) => {
+    if (updatedQuantity < 1) {
+      if (quantityTimers.current[product.productId]) {
+        clearTimeout(quantityTimers.current[product.productId]);
+      }
+      handleRemoveItem(product);
+      return;
+    }
+
+    if (updatedQuantity > product.maxQuantity) {
+      return;
+    }
+
+    setCartProducts((prev) => {
+      const currentProduct = prev.find(
+        (item) => item.productId === product.productId,
       );
-      return;
+
+      if (!currentProduct) {
+        return prev;
+      }
+
+      const difference = updatedQuantity - currentProduct.quantity;
+
+      setTotalItems((total) => total + difference);
+
+      return prev.map((item) =>
+        item.productId === product.productId
+          ? { ...item, quantity: updatedQuantity }
+          : item,
+      );
+    });
+
+    if (quantityTimers.current[product.productId]) {
+      clearTimeout(quantityTimers.current[product.productId]);
     }
 
-    if (quantity > maxQuantity) {
-      return;
+    quantityTimers.current[product.productId] = setTimeout(() => {
+      handleProductQuantityUpdate(product, updatedQuantity);
+      //console.log(updatedQuantity);
+    }, 1000);
+  };
+
+  const handleRemoveItem = async (product: CartProduct) => {
+    //removeItem(productId);
+    try {
+      let updateCartReq = {
+        prodId: product.productId,
+        cartId: cartId,
+        quantity: 0,
+      };
+      let authToken = token ?? "";
+      let updateCartResponse = await handleUpdateCart(updateCartReq, authToken);
+      if (!updateCartResponse.serviceResult.success) {
+        toast.error(updateCartResponse.serviceResult.errorMsg);
+      } else {
+        setCartProducts((prev) =>
+          prev.filter((item) => item.productId !== product.productId),
+        );
+        toast.success("Product removed from Cart!");
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
     }
-
-    updateQuantity(productId, quantity);
-
-    setCartProducts((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item,
-      ),
-    );
-
-    setTotalItems(
-      cartProducts.reduce(
-        (total, item) =>
-          total + (item.productId === productId ? quantity : item.quantity),
-        0,
-      ),
-    );
   };
 
-  const handleRemoveItem = (productId: string) => {
-    removeItem(productId);
-
-    setCartProducts((prev) =>
-      prev.filter((item) => item.productId !== productId),
-    );
-  };
-
-  const handleClearCart = () => {
-    clearCart();
-    setCartProducts([]);
-    setTotalItems(0);
+  const handleClearCart = async () => {
+    // clearCart();
+    try {
+      let deleteCartReq = { cartId: cartId };
+      let authToken = token ?? "";
+      let deleteCartRes = await handleDeleteCart(deleteCartReq, authToken);
+      if (!deleteCartRes?.serviceResult?.success) {
+        toast.error(deleteCartRes?.serviceResult?.errorMsg);
+      } else {
+        toast.success("Cart has been cleared!");
+        setCartProducts([]);
+        setTotalItems(0);
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
   };
 
   /*
@@ -148,7 +213,7 @@ export default function CartPage() {
             </p>
 
             <button
-              onClick={() => navigate("/shop")}
+              onClick={() => navigate(`/products/all/${userId}`)}
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink-900 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
             >
               Start Shopping
@@ -253,7 +318,7 @@ export default function CartPage() {
                       {/* Remove */}
 
                       <button
-                        onClick={() => handleRemoveItem(product.productId)}
+                        onClick={() => handleRemoveItem(product)}
                         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-red-50 hover:text-red-500"
                         aria-label={`Remove ${product.prodName}`}
                       >
@@ -275,9 +340,8 @@ export default function CartPage() {
                           <button
                             onClick={() =>
                               handleQuantityChange(
-                                product.productId,
                                 product.quantity - 1,
-                                product.maxQuantity,
+                                product,
                               )
                             }
                             className="flex h-10 w-10 items-center justify-center rounded-l-full text-ink-600 transition-colors hover:bg-ink-100"
@@ -293,9 +357,8 @@ export default function CartPage() {
                           <button
                             onClick={() =>
                               handleQuantityChange(
-                                product.productId,
                                 product.quantity + 1,
-                                product.maxQuantity,
+                                product,
                               )
                             }
                             disabled={product.quantity >= product.maxQuantity}
@@ -393,17 +456,7 @@ export default function CartPage() {
                 {/* Checkout */}
 
                 <button
-                  onClick={() =>
-                    navigate("/checkout", {
-                      state: {
-                        cartId,
-                        cartProducts,
-                        subtotal,
-                        shipping,
-                        total,
-                      },
-                    })
-                  }
+                  onClick={() => navigate("/checkout")}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-brand-600"
                 >
                   Proceed to Checkout
@@ -411,7 +464,7 @@ export default function CartPage() {
                 </button>
 
                 <button
-                  onClick={() => navigate("/shop")}
+                  onClick={() => navigate(`/products/all/${userId}`)}
                   className="flex w-full items-center justify-center gap-2 rounded-full border border-ink-200 px-6 py-3.5 text-sm font-semibold text-ink-700 transition-colors hover:border-brand-500 hover:text-brand-600"
                 >
                   <ArrowLeft size={17} />

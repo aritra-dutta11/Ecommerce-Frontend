@@ -1,21 +1,29 @@
 import axios from "axios";
 import { ServiceResult } from "../ServiceResult/ServiceResult";
-import { CartProduct, Product } from "@/types";
 
-class GetCartResponse {
-  cartProductList: CartProduct[] = [];
-  cartId: string = "";
+class GetCheckoutDetailsResponse {
+  totalAmt: number = 0.0;
+  shippingCharges: number = 0.0;
+  shippingChargesLimit: number = 0.0;
   serviceResult: ServiceResult = new ServiceResult();
 }
+class GetCheckoutDetailsRequest {
+  cartId: string = "";
+}
 
-export async function handleGetCartResponse(token: string) {
-  let response: GetCartResponse = new GetCartResponse();
+export async function getCheckoutDetails(
+  req: GetCheckoutDetailsRequest,
+  token: string,
+) {
+  let response: GetCheckoutDetailsResponse = new GetCheckoutDetailsResponse();
 
   try {
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
     //console.log(apiUrl);
-    let res = await axios.get(`${apiUrl}/cart/get`, {
-      headers: { Authorization: `Bearer ${token}` },
+    let res = await axios.post(`${apiUrl}/order/get/checkout/details`, req, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     console.log(res.data);
     if (res && res?.data) {
