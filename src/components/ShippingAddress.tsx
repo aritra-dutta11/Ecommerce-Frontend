@@ -11,48 +11,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { Address, CartProduct, Product } from "@/types";
-
-type PaymentMethod = "card" | "upi" | "netbanking" | "cod" | "wallet";
+import toast from "react-hot-toast";
 
 type AddressForm = Omit<Address, "addressId" | "is_default">;
-
-const PAYMENT_OPTIONS: {
-  id: PaymentMethod;
-  label: string;
-  desc: string;
-  icon: typeof CreditCard;
-}[] = [
-  {
-    id: "card",
-    label: "Credit / Debit Card",
-    desc: "Visa, Mastercard, Amex",
-    icon: CreditCard,
-  },
-  {
-    id: "wallet",
-    label: "Wallet",
-    desc: "Pay using your wallet balance",
-    icon: Wallet,
-  },
-  {
-    id: "upi",
-    label: "UPI",
-    desc: "Pay using any UPI app",
-    icon: Wallet,
-  },
-  {
-    id: "netbanking",
-    label: "Net Banking",
-    desc: "All major banks supported",
-    icon: Landmark,
-  },
-  {
-    id: "cod",
-    label: "Cash on Delivery",
-    desc: "Pay when you receive",
-    icon: Truck,
-  },
-];
 
 const EMPTY_ADDRESS: AddressForm = {
   houseNo: "",
@@ -67,18 +28,17 @@ const EMPTY_ADDRESS: AddressForm = {
   addressOwnerName: "",
 };
 
-interface OnSubmitResponse {
-  success: boolean;
-  errorMsg: string;
-}
-
 interface ShippingAddressProps {
   addresses: Address[];
   serialNo: number;
   onSubmit: (
     data: AddressForm,
   ) => Promise<{ success: boolean; errorMsg: string }>;
-  onDelete: (addressId: string) => Promise<boolean>;
+  onDelete: (
+    addressId: string,
+  ) => Promise<{ success: boolean; errorMsg: string }>;
+  selectedAddressId: string | null;
+  onAddressIdChange: (addressId: string) => void;
 }
 
 const ShippingAddress = ({
@@ -86,9 +46,10 @@ const ShippingAddress = ({
   onSubmit,
   addresses,
   onDelete,
+  selectedAddressId,
+  onAddressIdChange,
 }: ShippingAddressProps) => {
-  const { username, userId } = useAuth();
-  const [addressSaveError, setAddressSaveError] = useState("");
+  const { username } = useAuth();
 
   const [showAddressForm, setShowAddressForm] = useState(false);
 
@@ -97,10 +58,6 @@ const ShippingAddress = ({
   const [savingAddress, setSavingAddress] = useState(false);
 
   const [addressError, setAddressError] = useState<string | null>(null);
-
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    null,
-  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,9 +80,14 @@ const ShippingAddress = ({
 
   const handleDelete = async (addressId: string) => {
     try {
-      const success = await onDelete(addressId);
+      const { success, errorMsg } = await onDelete(addressId);
+      if (success) {
+        toast.success("Address deleted!");
+      } else {
+        toast.error(errorMsg);
+      }
     } catch (error) {
-      console.error("Error while delete address:", error);
+      toast.error(`Error while delete address: ${(error as Error).message}`);
     }
   };
 
@@ -381,13 +343,15 @@ const ShippingAddress = ({
                   type="radio"
                   name="address"
                   checked={selectedAddressId === addr.addressId}
-                  onChange={() => setSelectedAddressId(addr.addressId)}
+                  onChange={() => {
+                    onAddressIdChange(addr.addressId);
+                  }}
                   className="mt-1 accent-brand-600"
                 />
 
                 <div className="min-w-0 flex-1">
                   <p className="mt-1.5 font-medium text-ink-900">
-                    {addr.streetName}
+                    {addr.addressLabel}
                   </p>
 
                   <p className="text-sm text-ink-500">

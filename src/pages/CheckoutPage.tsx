@@ -23,6 +23,9 @@ import { handleGetCartResponse } from "@/api/cart/getCart";
 import { getCheckoutDetails } from "@/api/order/getCheckoutDetails";
 import ShippingAddress from "@/components/ShippingAddress";
 import { handleSaveAddress } from "@/api/user/saveAddress";
+import { handleGetUserAddresses } from "@/api/user/getUserAddresses";
+import PaymentOptions from "@/components/PaymentOptions";
+import { handleDeleteUserAddress } from "@/api/user/deleteAddress";
 
 interface CheckoutPageProps {
   // onBack: () => void;
@@ -138,10 +141,12 @@ export default function CheckoutPage(
   const [shippingLimit, setShippingLimit] = useState(0);
 
   let totalAmount = totalAmountWithoutShipping + shippingPrice;
+  // console.log(selectedAddressId);
 
   useEffect(() => {
     if (username) {
       if (cartId === "") {
+        handleGetAddresses();
         getUserWallet();
         handleGetCartProducts();
       }
@@ -210,6 +215,20 @@ export default function CheckoutPage(
     }
   };
 
+  const handleGetAddresses = async () => {
+    try {
+      let authToken = token ?? "";
+      let res = await handleGetUserAddresses(authToken);
+      if (res?.serviceResult?.success) {
+        setAddresses(res?.addressList);
+      } else {
+        console.log(res?.serviceResult?.errorMsg);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleAddressSubmit = async (addressForm: AddressForm) => {
     console.log(addressForm);
     let success = true;
@@ -241,8 +260,13 @@ export default function CheckoutPage(
       if (addressForm.phoneNo === "") {
         errorMsg += "Phone No. cannot be blank!";
       }
+
+      if (addressForm.phoneNo.length !== 10) {
+        errorMsg += "Invalid Phone No.!";
+      }
       if (errorMsg === "") {
         //API CALL
+        addressForm.phoneNo = "+91" + addressForm.phoneNo;
         let authToken = token ?? "";
         let res = await handleSaveAddress(addressForm, authToken);
         //console.log(res);
@@ -253,6 +277,7 @@ export default function CheckoutPage(
       }
       if (errorMsg !== "") {
         success = false;
+        addressForm.phoneNo = addressForm.phoneNo.substring(3);
       }
       if (success) {
         setAddresses([
@@ -270,8 +295,20 @@ export default function CheckoutPage(
 
   const handleDeleteAddress = async (id: string) => {
     //console.log(id);
-    setAddresses(addresses.filter((add) => add.addressId !== id));
-    return true;
+    let success = true;
+    let errorMsg = "";
+
+    try {
+      setAddresses(addresses.filter((add) => add.addressId !== id));
+      let authToken = token ?? "";
+      let req = { addressId: id };
+      let res = await handleDeleteUserAddress(req, authToken);
+      if (!res?.serviceResult.success) {
+        errorMsg += res?.serviceResult.errorMsg;
+        success = false;
+      }
+    } catch (error) {}
+    return { success, errorMsg };
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -360,523 +397,18 @@ export default function CheckoutPage(
             addresses={addresses}
             onSubmit={handleAddressSubmit}
             onDelete={handleDeleteAddress}
+            selectedAddressId={selectedAddressId}
+            onAddressIdChange={setSelectedAddressId}
           />
-
-          {/* <section className="rounded-2xl bg-white p-6 ring-1 ring-ink-200">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
-                  1
-                </span>
-
-                <h2 className="font-display text-xl font-semibold text-ink-900">
-                  Shipping Address
-                </h2>
-              </div>
-
-              {username && addresses.length > 0 && !showAddressForm && (
-                <button
-                  type="button"
-                  onClick={() => setShowAddressForm(true)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700"
-                >
-                  <Plus size={16} />
-                  Add New
-                </button>
-              )}
-            </div>
-
-            {!username ? (
-              <div className="flex flex-col items-center gap-3 rounded-xl bg-ink-50 px-6 py-8 text-center">
-                <MapPin size={28} className="text-ink-400" />
-
-                <p className="text-sm text-ink-600">
-                  Sign in to save and select your addresses.
-                </p>
-
-                <button
-                  type="button"
-                  className="rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-                >
-                  Sign In
-                </button>
-              </div>
-            ) : showAddressForm ? (
-              <div className="rounded-xl border border-ink-200 p-5 animate-fade-in">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold text-ink-900">
-                    Add New Address
-                  </h3>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddressForm(false)}
-                    className="text-ink-400 hover:text-ink-600"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                {addressSaveError !== "" && (
-                  <div className="mb-4 flex items-center justify-between">
-                    <span>{addressSaveError}</span>
-                  </div>
-                )}
-
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      value={addressForm.addressLabel}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          addressLabel: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    >
-                      <option>Home</option>
-                      <option>Office</option>
-                      <option>Other</option>
-                    </select>
-
-                    <input
-                      required
-                      placeholder="Full name"
-                      value={addressForm.addressOwnerName}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          addressOwnerName: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      required
-                      placeholder="House/Apartment No."
-                      value={addressForm.houseNo}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          full_name: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-
-                    <input
-                      required
-                      placeholder="Street Name"
-                      value={addressForm.streetName}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          full_name: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      required
-                      placeholder="City"
-                      value={addressForm.cityOrTown}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          cityOrTown: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-
-                    <input
-                      placeholder="District"
-                      value={addressForm.stateName}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          district: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      placeholder="State / Province"
-                      value={addressForm.stateName}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          stateName: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-
-                    <input
-                      required
-                      placeholder="Country"
-                      value={addressForm.cityOrTown}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          cityOrTown: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      required
-                      placeholder="Pincode"
-                      value={addressForm.pincode}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          pincode: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-
-                    <input
-                      placeholder="Phone"
-                      value={addressForm.phoneNo}
-                      onChange={(e) =>
-                        setAddressForm((f) => ({
-                          ...f,
-                          phoneNo: e.target.value,
-                        }))
-                      }
-                      className="rounded-xl border border-ink-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </div>
-
-                  {addressError && (
-                    <p className="text-sm font-medium text-error-600">
-                      {addressError}
-                    </p>
-                  )}
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleAddressSubmit}
-                      disabled={savingAddress}
-                      className="flex-1 rounded-full bg-ink-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
-                    >
-                      {savingAddress ? "Saving..." : "Save Address"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowAddressForm(false)}
-                      className="rounded-full border border-ink-200 px-6 py-3 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : addresses.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-xl bg-ink-50 px-6 py-8 text-center">
-                <MapPin size={28} className="text-ink-400" />
-
-                <p className="text-sm text-ink-600">No saved addresses yet.</p>
-
-                <button
-                  type="button"
-                  onClick={() => setShowAddressForm(true)}
-                  className="flex items-center gap-1.5 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-                >
-                  <Plus size={16} />
-                  Add Address
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {addresses.map((addr) => (
-                  <label
-                    key={addr.addressId}
-                    className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition-all ${
-                      selectedAddressId === addr.addressId
-                        ? "border-brand-500 bg-brand-50 ring-2 ring-brand-100"
-                        : "border-ink-200 hover:border-ink-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="address"
-                      checked={selectedAddressId === addr.addressId}
-                      onChange={() => setSelectedAddressId(addr.addressId)}
-                      className="mt-1 accent-brand-600"
-                    />
-
-                    <div className="min-w-0 flex-1">
-                      <p className="mt-1.5 font-medium text-ink-900">
-                        {addr.streetName}
-                      </p>
-
-                      <p className="text-sm text-ink-500">
-                        {addr.streetName}, {addr.cityOrTown}
-                        {addr.stateName ? `, ${addr.stateName}` : ""}{" "}
-                        {addr.pincode}
-                      </p>
-
-                      {addr.phoneNo && (
-                        <p className="text-sm text-ink-400">{addr.phoneNo}</p>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDeleteAddress(addr.addressId);
-                      }}
-                      className="self-start text-ink-400 transition-colors hover:text-error-500"
-                      aria-label="Delete address"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </label>
-                ))}
-              </div>
-            )}
-          </section> */}
 
           {/* =================================================
               PAYMENT METHOD
           ================================================= */}
-
-          <section className="w-full min-w-0 overflow-hidden rounded-2xl bg-white p-6 ring-1 ring-ink-200">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
-                3
-              </span>
-
-              <h2 className="font-display text-xl font-semibold text-ink-900">
-                Payment Method
-              </h2>
-            </div>
-
-            {/* Payment Options */}
-            <div className="grid w-full min-w-0 gap-3">
-              {PAYMENT_OPTIONS.map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`flex w-full min-w-0 cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all ${
-                    paymentMethod === opt.id
-                      ? "border-brand-500 bg-brand-50 ring-2 ring-brand-100"
-                      : "border-ink-200 hover:border-ink-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={paymentMethod === opt.id}
-                    onChange={() => setPaymentMethod(opt.id)}
-                    className="shrink-0 accent-brand-600"
-                  />
-
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-ink-200">
-                    <opt.icon size={20} className="text-ink-700" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-ink-900">
-                      {opt.label}
-                    </p>
-
-                    <p className="truncate text-sm text-ink-500">{opt.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            {/* =================================================
-                CARD
-            ================================================= */}
-
-            {paymentMethod === "card" && (
-              <div className="mt-4 grid w-full min-w-0 gap-4 rounded-xl bg-ink-50 p-4 animate-fade-in">
-                <div className="relative min-w-0">
-                  <input
-                    required
-                    placeholder="Card number"
-                    value={cardForm.number}
-                    onChange={(e) =>
-                      setCardForm((f) => ({
-                        ...f,
-                        number: e.target.value,
-                      }))
-                    }
-                    className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                  />
-
-                  <CreditCard
-                    size={20}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-400"
-                  />
-                </div>
-
-                <input
-                  required
-                  placeholder="Name on card"
-                  value={cardForm.name}
-                  onChange={(e) =>
-                    setCardForm((f) => ({
-                      ...f,
-                      name: e.target.value,
-                    }))
-                  }
-                  className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                />
-
-                <div className="grid min-w-0 grid-cols-2 gap-4">
-                  <input
-                    required
-                    placeholder="MM / YY"
-                    value={cardForm.expiry}
-                    onChange={(e) =>
-                      setCardForm((f) => ({
-                        ...f,
-                        expiry: e.target.value,
-                      }))
-                    }
-                    className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                  />
-
-                  <input
-                    required
-                    placeholder="CVC"
-                    value={cardForm.cvc}
-                    onChange={(e) =>
-                      setCardForm((f) => ({
-                        ...f,
-                        cvc: e.target.value,
-                      }))
-                    }
-                    className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* =================================================
-    WALLET
-================================================= */}
-            {paymentMethod === "wallet" && (
-              <div className="mt-4 w-full min-w-0 rounded-xl bg-ink-50 p-4 animate-fade-in">
-                <div className="flex items-center justify-between rounded-xl bg-white p-4 ring-1 ring-ink-200">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50">
-                      <Wallet size={20} className="text-brand-600" />
-                    </div>
-
-                    <div>
-                      <p className="font-medium text-ink-900">Wallet Balance</p>
-
-                      <p className="text-sm text-ink-500">Available balance</p>
-                    </div>
-                  </div>
-
-                  <span className="font-display text-lg font-semibold text-ink-900">
-                    {formatPrice(walletAmt)}
-                  </span>
-                </div>
-
-                {walletAmt >= totalAmount ? (
-                  <div className="mt-3 rounded-xl bg-success-500/10 px-4 py-3">
-                    <p className="text-sm font-medium text-success-600">
-                      You have enough wallet balance to complete this payment.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-3 rounded-xl bg-error-500/10 px-4 py-3">
-                    <p className="text-sm font-medium text-error-600">
-                      Insufficient wallet balance.
-                    </p>
-
-                    <p className="mt-1 text-xs text-error-500">
-                      You need {formatPrice(totalAmount - walletAmt)} more to
-                      complete this payment.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* =================================================
-                UPI
-            ================================================= */}
-
-            {paymentMethod === "upi" && (
-              <div className="mt-4 w-full min-w-0 rounded-xl bg-ink-50 p-4 animate-fade-in">
-                <input
-                  required
-                  placeholder="Enter UPI ID (e.g. name@bank)"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                />
-                <div className="mt-4 rounded-xl bg-white p-4 ring-1 ring-ink-200">
-                  <UpiQr amount={totalAmount} />
-                </div>
-              </div>
-            )}
-
-            {/* =================================================
-                NET BANKING
-            ================================================= */}
-
-            {paymentMethod === "netbanking" && (
-              <div className="mt-4 w-full min-w-0 rounded-xl bg-ink-50 p-4 animate-fade-in">
-                <select
-                  required
-                  value={bank}
-                  onChange={(e) => setBank(e.target.value)}
-                  className="w-full min-w-0 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                >
-                  <option value="">Select your bank</option>
-
-                  <option>State Bank of India</option>
-                  <option>HDFC Bank</option>
-                  <option>ICICI Bank</option>
-                  <option>Axis Bank</option>
-                  <option>Kotak Mahindra Bank</option>
-                  <option>Bank of America</option>
-                  <option>Chase Bank</option>
-                  <option>Wells Fargo</option>
-                </select>
-              </div>
-            )}
-
-            {/* =================================================
-                COD
-            ================================================= */}
-
-            {paymentMethod === "cod" && (
-              <div className="mt-4 flex w-full min-w-0 items-center gap-3 rounded-xl bg-ink-50 p-4 animate-fade-in">
-                <Truck size={20} className="shrink-0 text-ink-600" />
-
-                <p className="min-w-0 text-sm text-ink-600">
-                  Pay {formatPrice(totalAmount)} in cash when your order is
-                  delivered.
-                </p>
-              </div>
-            )}
-          </section>
+          <PaymentOptions
+            serialNo={2}
+            walletAmt={walletAmt}
+            totalAmount={totalAmount}
+          />
 
           {/* =================================================
               PLACE ORDER

@@ -48,6 +48,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       //console.log(data);
       let addToCartReq = { prodId: data.prodId };
       let authToken = token !== null ? token : "";
+      console.log(addToCartReq);
       let addToCartRes = await handleAddToCart(addToCartReq, authToken);
       if (addToCartRes.serviceResult.errorMsg !== "") {
         toast.error(addToCartRes.serviceResult.errorMsg);
