@@ -16,7 +16,13 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
-import type { Address, AddressForm, CartProduct, Product } from "@/types";
+import {
+  Address,
+  AddressForm,
+  CartProduct,
+  PlaceOrderRequest,
+  Product,
+} from "@/types";
 import UpiQr from "@/components/UpiQr";
 import { handleGetWalletResponse } from "@/api/user/getWallet";
 import { handleGetCartResponse } from "@/api/cart/getCart";
@@ -26,6 +32,8 @@ import { handleSaveAddress } from "@/api/user/saveAddress";
 import { handleGetUserAddresses } from "@/api/user/getUserAddresses";
 import PaymentOptions from "@/components/PaymentOptions";
 import { handleDeleteUserAddress } from "@/api/user/deleteAddress";
+import { handleOrderPlace } from "@/api/order/placeOrder";
+import toast from "react-hot-toast";
 
 interface CheckoutPageProps {
   // onBack: () => void;
@@ -313,16 +321,36 @@ export default function CheckoutPage(
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedAddressId) return;
-
     setPlacing(true);
+    try {
+      if (!selectedAddressId) return;
 
-    await new Promise((r) => setTimeout(r, 1200));
+      // console.log(paymentMethod);
+      // console.log(walletId);
+      // console.log(cartId);
+      // console.log(selectedAddressId);
 
+      let authToken = token ?? "";
+      let req: PlaceOrderRequest = new PlaceOrderRequest();
+      req.addressId = selectedAddressId;
+      req.cartId = cartId;
+      req.paymentMode = paymentMethod;
+      if (paymentMethod === "wallet") {
+        req.walletDetails.walletId = walletId;
+      }
+
+      let res = await handleOrderPlace(req, authToken);
+
+      if (res?.serviceResult?.success) {
+        console.log(res);
+        setDone(true);
+      } else {
+        toast.error(res?.serviceResult?.errorMsg);
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
     setPlacing(false);
-
-    setDone(true);
   };
 
   if (done) {
@@ -408,6 +436,8 @@ export default function CheckoutPage(
             serialNo={2}
             walletAmt={walletAmt}
             totalAmount={totalAmount}
+            paymentMethod={paymentMethod}
+            onPaymentMethodChange={setPaymentMethod}
           />
 
           {/* =================================================

@@ -81,3 +81,16 @@ export interface AddressForm {
   addressLabel: string;
   addressOwnerName: string;
 }
+
+export class PlaceOrderRequest {
+  paymentMode: string = "";
+  cartId: string = "";
+  addressId: string = "";
+  walletDetails: WalletDetails = new WalletDetails();
+}
+
+export class WalletDetails {
+  walletId: string = "";
+}
+
+export type PaymentMethod = "card" | "upi" | "netbanking" | "cod" | "wallet";

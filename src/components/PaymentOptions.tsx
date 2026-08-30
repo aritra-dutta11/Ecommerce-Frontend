@@ -16,22 +16,22 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
-import type { Address, AddressForm, CartProduct, Product } from "@/types";
+import type {
+  Address,
+  AddressForm,
+  CartProduct,
+  PaymentMethod,
+  Product,
+} from "@/types";
 import UpiQr from "@/components/UpiQr";
-import { handleGetWalletResponse } from "@/api/user/getWallet";
-import { handleGetCartResponse } from "@/api/cart/getCart";
-import { getCheckoutDetails } from "@/api/order/getCheckoutDetails";
-import ShippingAddress from "@/components/ShippingAddress";
-import { handleSaveAddress } from "@/api/user/saveAddress";
-import { handleGetUserAddresses } from "@/api/user/getUserAddresses";
 
 interface PaymentOptions {
   serialNo: number;
   walletAmt: number;
   totalAmount: number;
+  paymentMethod: PaymentMethod;
+  onPaymentMethodChange: (paymentMethod: PaymentMethod) => void;
 }
-
-type PaymentMethod = "card" | "upi" | "netbanking" | "cod" | "wallet";
 
 const PAYMENT_OPTIONS: {
   id: PaymentMethod;
@@ -75,8 +75,10 @@ const PaymentOptions = ({
   walletAmt,
   serialNo,
   totalAmount,
+  paymentMethod,
+  onPaymentMethodChange,
 }: PaymentOptions) => {
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  //const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
 
   const [cardForm, setCardForm] = useState({
     number: "",
@@ -88,6 +90,7 @@ const PaymentOptions = ({
   const [upiId, setUpiId] = useState("");
 
   const [bank, setBank] = useState("");
+
   return (
     <div>
       <section className="w-full min-w-0 overflow-hidden rounded-2xl bg-white p-6 ring-1 ring-ink-200">
@@ -116,7 +119,7 @@ const PaymentOptions = ({
                 type="radio"
                 name="payment"
                 checked={paymentMethod === opt.id}
-                onChange={() => setPaymentMethod(opt.id)}
+                onChange={() => onPaymentMethodChange(opt.id)}
                 className="shrink-0 accent-brand-600"
               />
 
